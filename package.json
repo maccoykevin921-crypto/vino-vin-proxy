@@ -1,13 +1,15 @@
 {
   "name": "vino-vin-proxy",
   "version": "1.0.0",
-  "description": "AI backend for Vino Auto BenchLab diagnostics",
+  "description": "Vino Auto BenchLab VIN Proxy backend",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "axios": "^1.6.8"
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
   }
 }
