@@ -34,7 +34,7 @@ app.post("/vin", async (req, res) => {
         year: data.Results[0].ModelYear,
         manufacturer: data.Results[0].Manufacturer,
         bodyClass: data.Results[0].BodyClass,
-        engine: data.Results[0].EngineModel,
+        engine: data.Results[0].EngineModel
       });
     } else {
       res.status(404).json({ error: "No data found for VIN" });
@@ -42,14 +42,16 @@ app.post("/vin", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: "VIN fetch failed",
-      details: error.message,
+      details: error.message
     });
   }
 });
 
-// Optional GET fallback for /vin
+// Fallback GET route
 app.get("/vin", (req, res) => {
-  res.status(405).send("⚠️ Use POST /vin with JSON body { vin: 'yourVIN' }");
+  res
+    .status(405)
+    .send("⚠️ Use POST /vin with JSON body like: { vin: 'YOURVIN' }");
 });
 
 // Start server (Render assigns the port)
