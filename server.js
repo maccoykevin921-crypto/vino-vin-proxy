@@ -6,12 +6,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Root route for Render check
+// Root test route
 app.get("/", (req, res) => {
   res.send("✅ Vino Auto BenchLab VIN Proxy is running");
 });
 
-// VIN decode route
+// VIN decode POST route
 app.post("/vin", async (req, res) => {
   const { vin } = req.body;
 
@@ -24,7 +24,21 @@ app.post("/vin", async (req, res) => {
       `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vin}?format=json`
     );
     const data = await response.json();
-    res.json(data.Results[0]);
+
+    if (data && data.Results && data.Results.length > 0) {
+      res.json({
+        success: true,
+        vin,
+        make: data.Results[0].Make,
+        model: data.Results[0].Model,
+        year: data.Results[0].ModelYear,
+        manufacturer: data.Results[0].Manufacturer,
+        bodyClass: data.Results[0].BodyClass,
+        engine: data.Results[0].EngineModel,
+      });
+    } else {
+      res.status(404).json({ error: "No data found for VIN" });
+    }
   } catch (error) {
     res.status(500).json({
       error: "VIN fetch failed",
@@ -33,11 +47,11 @@ app.post("/vin", async (req, res) => {
   }
 });
 
-// fallback route for /vin GET
+// Optional GET fallback for /vin
 app.get("/vin", (req, res) => {
-  res.status(405).send("Use POST /vin with JSON body { vin: 'yourVIN' }");
+  res.status(405).send("⚠️ Use POST /vin with JSON body { vin: 'yourVIN' }");
 });
 
-// start server
+// Start server (Render assigns the port)
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
