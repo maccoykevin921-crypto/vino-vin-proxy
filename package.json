@@ -1,15 +1,36 @@
-{
-  "name": "vino-vin-proxy",
-  "version": "1.0.0",
-  "description": "Vino Auto BenchLab VIN proxy",
-  "main": "server.js",
-  "type": "module",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "node-fetch": "^3.3.2"
+// vin-proxy/index.js
+import express from "express";
+import cors from "cors";
+import fetch from "node-fetch";
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.get("/", (req,res)=> res.send("✅ Vino VIN Proxy online"));
+
+app.get("/vin", async (req,res) => {
+  const vin = (req.query.vin || '').toString().trim().toUpperCase();
+  if(!vin) return res.status(400).json({error:'Missing VIN parameter'});
+  try{
+    const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${encodeURIComponent(vin)}?format=json`);
+    const data = await r.json();
+    const r0 = (data.Results && data.Results[0]) || {};
+    const result = {
+      success:true,
+      vin,
+      make: r0.Make || "Unknown",
+      model: r0.Model || "Unknown",
+      year: r0.ModelYear || "Unknown",
+      manufacturer: r0.Manufacturer || "Unknown",
+      engine: r0.EngineModel || r0.DisplacementL || "Unknown"
+    };
+    res.json(result);
+  }catch(err){
+    console.error('VIN decode failed', err);
+    res.status(500).json({error:'Server error while decoding VIN'});
   }
-}
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, ()=>console.log(`Vino VIN Proxy running on ${PORT}`));
