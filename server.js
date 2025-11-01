@@ -25,9 +25,12 @@ app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-// Start the server
-// Start the // Start the // Start the server
+// Handle all unknown routes
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
 // Start the server
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`)`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
