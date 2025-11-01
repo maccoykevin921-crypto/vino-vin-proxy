@@ -29,5 +29,5 @@ app.use((req, res) => {
 // Start the // Start the // Start the server
 // Start the server
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`)`🚀 Server running on port ${PORT}`));
 
