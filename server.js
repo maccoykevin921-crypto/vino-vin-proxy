@@ -6,59 +6,65 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ Root route
+// Root route
 app.get("/", (req, res) => {
-  res.send("✅ Vino VIN Proxy is online and ready!");
+  res.send("✅ Vino VIN Proxy is online and fully upgraded!");
 });
 
-// ✅ VIN Decoder (supports both /vin/:vin and /vin?vin=)
-async function decodeVin(vin, res) {
+// VIN Decoder route (with color + manufacturer)
+app.get("/vin", async (req, res) => {
   try {
-    if (!vin) return res.status(400).json({ error: "Missing VIN parameter" });
-    vin = vin.toUpperCase();
+    const vin = req.query.vin?.toUpperCase();
+    const isPro = req.query.pro === "true"; // paid version
 
-    const response = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`);
+    if (!vin) {
+      return res.status(400).json({ error: "Missing VIN parameter" });
+    }
+
+    // Fetch decoded data from NHTSA
+    const response = await fetch(
+      `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
+    );
     const data = await response.json();
     const r = data.Results[0];
 
-    return res.json({
-      success: true,
+    // Base VIN info
+    const result = {
       vin,
       make: r.Make || "Unknown",
       model: r.Model || "Unknown",
       year: r.ModelYear || "Unknown",
       manufacturer: r.Manufacturer || "Unknown",
       bodyClass: r.BodyClass || "Unknown",
-      country: r.PlantCountry || "Unknown",
-      plantCity: r.PlantCity || "Unknown",
-      transmission: r.TransmissionStyle || "Unknown",
-      engine: r.EngineModel || r.EngineCylinders || "Unknown",
-      vehicleType: r.VehicleType || "Unknown",
+      engine: r.EngineModel || "Unknown",
       fuelType: r.FuelTypePrimary || "Unknown",
-      driveType: r.DriveType || "Unknown",
-      restraintSystem: r.RestraintSystem || "Unknown",
-      series: r.Series || "Unknown",
-      trim: r.Trim || "Unknown",
-      doors: r.Doors || "Unknown",
-      gvwr: r.GVWR || "Unknown",
-      brakeSystem: r.BrakeSystemType || "Unknown",
-      modelID: r.ModelID || "Unknown"
-    });
+      color: r.Color || "Not Listed",
+      country: r.PlantCountry || "Unknown",
+      city: r.PlantCity || "Unknown",
+      premium: isPro,
+      message: "Basic VIN information retrieved successfully ✅"
+    };
+
+    // If Pro version, include advanced visuals
+    if (isPro) {
+      result.message = "Full BenchLab Pro report unlocked 🚀";
+      result.ecuImage = `https://vinoautomechanic.com/assets/ecu/${r.Make}_${r.Model}_${r.ModelYear}.jpg`;
+      result.wiringDiagram = `https://vinoautomechanic.com/assets/wiring/${r.Make}_${r.Model}_${r.ModelYear}.jpg`;
+    }
+
+    res.json(result);
   } catch (error) {
     console.error("VIN decode failed:", error);
-    return res.status(500).json({ error: "Server error while decoding VIN" });
+    res.status(500).json({ error: "Server error while decoding VIN" });
   }
-}
+});
 
-// ✅ Route format 1
-app.get("/vin/:vin", async (req, res) => decodeVin(req.params.vin, res));
+// Fallback
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
 
-// ✅ Route format 2
-app.get("/vin", async (req, res) => decodeVin(req.query.vin, res));
-
-// ✅ Fallback for any other routes
-app.use((req, res) => res.status(404).json({ error: "Route not found" }));
-
-// ✅ Start server
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Vino VIN Proxy running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚗 Vino VIN Proxy running smoothly on port ${PORT}`)
+);
