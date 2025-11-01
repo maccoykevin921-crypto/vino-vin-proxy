@@ -6,78 +6,59 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Root route — just to verify server is online
+// ✅ Root route
 app.get("/", (req, res) => {
   res.send("✅ Vino VIN Proxy is online and ready!");
 });
 
-// --- VIN DECODER ROUTES --- //
-
-// Format 1: /vin/:vin (e.g. /vin/1HGCM82633A004352)
-app.get("/vin/:vin", async (req, res) => {
+// ✅ VIN Decoder (supports both /vin/:vin and /vin?vin=)
+async function decodeVin(vin, res) {
   try {
-    const vin = req.params.vin?.toUpperCase();
-    if (!vin) {
-      return res.status(400).json({ error: "Missing VIN parameter" });
-    }
+    if (!vin) return res.status(400).json({ error: "Missing VIN parameter" });
+    vin = vin.toUpperCase();
 
-    const response = await fetch(
-      `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
-    );
+    const response = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`);
     const data = await response.json();
-    const result = data.Results[0];
+    const r = data.Results[0];
 
-    res.json({
+    return res.json({
       success: true,
       vin,
-      make: result.Make || "Unknown",
-      model: result.Model || "Unknown",
-      year: result.ModelYear || "Unknown",
-      manufacturer: result.Manufacturer || "Unknown",
-      country: result.PlantCountry || "Unknown",
-      plantCity: result.PlantCity || "Unknown",
+      make: r.Make || "Unknown",
+      model: r.Model || "Unknown",
+      year: r.ModelYear || "Unknown",
+      manufacturer: r.Manufacturer || "Unknown",
+      bodyClass: r.BodyClass || "Unknown",
+      country: r.PlantCountry || "Unknown",
+      plantCity: r.PlantCity || "Unknown",
+      transmission: r.TransmissionStyle || "Unknown",
+      engine: r.EngineModel || r.EngineCylinders || "Unknown",
+      vehicleType: r.VehicleType || "Unknown",
+      fuelType: r.FuelTypePrimary || "Unknown",
+      driveType: r.DriveType || "Unknown",
+      restraintSystem: r.RestraintSystem || "Unknown",
+      series: r.Series || "Unknown",
+      trim: r.Trim || "Unknown",
+      doors: r.Doors || "Unknown",
+      gvwr: r.GVWR || "Unknown",
+      brakeSystem: r.BrakeSystemType || "Unknown",
+      modelID: r.ModelID || "Unknown"
     });
   } catch (error) {
     console.error("VIN decode failed:", error);
-    res.status(500).json({ error: "Server error while decoding VIN" });
+    return res.status(500).json({ error: "Server error while decoding VIN" });
   }
-});
+}
 
-// Format 2: /vin?vin=XXXX (e.g. /vin?vin=1HGCM82633A004352)
-app.get("/vin", async (req, res) => {
-  try {
-    const vin = req.query.vin?.toUpperCase();
-    if (!vin) {
-      return res.status(400).json({ error: "Missing VIN parameter" });
-    }
+// ✅ Route format 1
+app.get("/vin/:vin", async (req, res) => decodeVin(req.params.vin, res));
 
-    const response = await fetch(
-      `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
-    );
-    const data = await response.json();
-    const result = data.Results[0];
+// ✅ Route format 2
+app.get("/vin", async (req, res) => decodeVin(req.query.vin, res));
 
-    res.json({
-      success: true,
-      vin,
-      make: result.Make || "Unknown",
-      model: result.Model || "Unknown",
-      year: result.ModelYear || "Unknown",
-      manufacturer: result.Manufacturer || "Unknown",
-      country: result.PlantCountry || "Unknown",
-      plantCity: result.PlantCity || "Unknown",
-    });
-  } catch (error) {
-    console.error("VIN decode failed:", error);
-    res.status(500).json({ error: "Server error while decoding VIN" });
-  }
-});
+// ✅ Fallback for any other routes
+app.use((req, res) => res.status(404).json({ error: "Route not found" }));
 
-// Catch-all fallback for undefined routes
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
-});
-
-// --- START SERVER --- //
+// ✅ Start server
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`🚀 Vino VIN Proxy running on port ${PORT}`));
