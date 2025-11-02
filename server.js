@@ -6,41 +6,45 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const VIN_API = "https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvaluesextended/";
+// 🌍 Global VIN Decoder API (RapidAPI)
+const VIN_API = "https://vindecoder.p.rapidapi.com/decode_vin";
 
 app.get("/vin", async (req, res) => {
   const vin = req.query.vin;
-  if (!vin) {
-    return res.status(400).json({ error: "VIN missing" });
-  }
+  if (!vin) return res.status(400).json({ error: "VIN missing" });
 
   try {
-    const response = await fetch(`${VIN_API}${vin}?format=json`);
-    const data = await response.json();
+    const response = await fetch(`${VIN_API}?vin=${vin}`, {
+      method: "GET",
+      headers: {
+        "X-RapidAPI-Key": process.env.RAPIDAPI_KEY, // Set this on Render
+        "X-RapidAPI-Host": "vindecoder.p.rapidapi.com"
+      }
+    });
 
-    if (!data.Results || !data.Results[0]) {
-      return res.status(404).json({ error: "No data found" });
+    const data = await response.json();
+    const result = data?.specification || data?.decode || {};
+
+    if (!result || Object.keys(result).length === 0) {
+      return res.status(404).json({ error: "No data found for this VIN" });
     }
 
-    const r = data.Results[0];
     res.json({
-      vin,
-      make: r.Make || "N/A",
-      model: r.Model || "N/A",
-      year: r.ModelYear || "N/A",
-      manufacturer: r.Manufacturer || "N/A",
-      engine: r.EngineModel || "N/A",
-      cylinders: r.EngineCylinders || "N/A",
-      plant: r.PlantCity || "N/A"
+      vin: vin.toUpperCase(),
+      make: result.make || "N/A",
+      model: result.model || "N/A",
+      year: result.year || "N/A",
+      manufacturer: result.manufacturer || "N/A",
+      engine: result.engine || "N/A",
+      cylinders: result.cylinders || "N/A",
+      plant: result.plant || "N/A"
     });
+
   } catch (err) {
     console.error("VIN lookup failed:", err.message);
-    res.status(500).json({
-      error: "VIN lookup failed",
-      details: err.message
-    });
+    res.status(500).json({ error: "VIN lookup failed", details: err.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log(`✅ VIN Proxy live on port ${PORT}`));
